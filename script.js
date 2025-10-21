@@ -1,5 +1,3 @@
-import { supabase } from './supabase-config.js';
-
 document.addEventListener('DOMContentLoaded', function() {
     const loginBtn = document.getElementById('loginBtn');
     const usernameInput = document.getElementById('username');
@@ -7,10 +5,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const spinner = document.getElementById('spinner');
     const buttonText = document.getElementById('buttonText');
     const messageDiv = document.getElementById('message');
-    const signupLink = document.getElementById('signupLink');
+    
+    // Create Supabase client
+    const supabase = window.supabase.createClient(window.supabaseUrl, window.supabaseAnonKey);
     
     loginBtn.addEventListener('click', handleLogin);
-    signupLink.addEventListener('click', handleSignup);
     
     // Also allow login on Enter key press
     passwordInput.addEventListener('keypress', function(e) {
@@ -46,8 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // In a real app, you'd use proper password hashing
-            // For demo, we'll simulate password check
+            // Simple password check (for demo)
             if (password === users.password) {
                 // Update last login
                 await supabase
@@ -71,45 +69,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Login failed. Please try again.', 'error');
         } finally {
             setLoadingState(false);
-        }
-    }
-    
-    async function handleSignup(e) {
-        e.preventDefault();
-        const username = prompt('Enter username:');
-        if (!username) return;
-        
-        const email = prompt('Enter email:');
-        if (!email) return;
-        
-        const password = prompt('Enter password:');
-        if (!password) return;
-        
-        const name = prompt('Enter your name:');
-        if (!name) return;
-        
-        try {
-            const { data, error } = await supabase
-                .from('users')
-                .insert([
-                    {
-                        username: username,
-                        email: email,
-                        password: password, // In real app, hash this!
-                        name: name,
-                        created_at: new Date().toISOString()
-                    }
-                ])
-                .select();
-            
-            if (error) {
-                showMessage('Signup failed: ' + error.message, 'error');
-            } else {
-                showMessage('Signup successful! You can now login.', 'success');
-            }
-        } catch (error) {
-            console.error('Signup error:', error);
-            showMessage('Signup failed. Please try again.', 'error');
         }
     }
     
