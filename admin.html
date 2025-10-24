@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Student Signup Requests</title>
+    <script>
+        // Supabase configuration for admin panel
+        window.supabaseUrl = 'https://utsohlqsnojqlouzmouu.supabase.co';
+        window.supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0c29obHFzbm9qcWxvdXptb3V1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNDgyMTEsImV4cCI6MjA3NjYyNDIxMX0.zKK9BVX9Yx8Yo-TCet-bVvftfChXVQaoR061fUWMmb8';
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #fe2c55; color: white; }
+        .stats { display: flex; gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1; }
+        .auth-form { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #fe2c55; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; margin: 2px; }
+        .status-pending { background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; }
+        .status-approved { background: #d1ecf1; color: #0c5460; padding: 4px 8px; border-radius: 4px; }
+        .status-rejected { background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; }
+        .action-buttons { display: flex; gap: 5px; }
+        .student-info { background: #e7f3ff; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .copy-password { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Student Signup Requests</h1>
+        
+        <div class="auth-form" id="authForm">
+            <h3>Admin Authentication</h3>
+            <input type="password" id="adminPassword" placeholder="Enter admin password">
+            <button onclick="authenticateAdmin()">Access Data</button>
+        </div>
+        
+        <div id="adminPanel" style="display: none;">
+            <div class="student-info">
+                <strong>Workflow:</strong> Students submit email & password → You approve → System creates account in users table
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Pending Requests</h3>
+                    <p id="pendingRequests">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Requests</h3>
+                    <p id="totalRequests">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Approved Today</h3>
+                    <p id="approvedToday">0</p>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Email</th>
+                        <th>Password</th>
+                        <th>Status</th>
+                        <th>Request Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="requestsTable">
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 20px;">
+                <button onclick="exportToCSV()" style="background: #fe2c55;">Export to CSV</button>
+                <button onclick="logoutAdmin()" style="background: #666; margin-left: 10px;">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASSWORD = 'admin123'; // Change this to a secure password
+        
+        // Create Supabase client
+        const supabase = window.supabase.createClient(window.supabaseUrl, window.supabaseAnonKey);
+
+        async function authenticateAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password === ADMIN_PASSWORD) {
+                localStorage.setItem('adminAuthenticated', 'true');
+                document.getElementById('authForm').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                await loadSignupRequests();
+            } else {
+                alert('Invalid admin password');
+            }
+        }
+
+        async function loadSignupRequests() {
+            try {
+                console.log('Loading simplified signup requests...');
+                
+                const { data: requests, error } = await supabase
+                    .from('signup_requests')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.error('Error loading requests:', error);
+                    alert('Error loading data: ' + error.message);
+                    return;
+                }
+                
+                console.log('Requests loaded:', requests);
+                
+                const pendingCount = requests.filter(req => req.status === 'pending').length;
+                const today = new Date().toISOString().split('T')[0];
+                const approvedTodayCount = requests.filter(req => 
+                    req.status === 'approved' && 
+                    req.updated_at && 
+                    req.updated_at.split('T')[0] === today
+                ).length;
+                
+                document.getElementById('pendingRequests').textContent = pendingCount;
+                document.getElementById('totalRequests').textContent = requests.length;
+                document.getElementById('approvedToday').textContent = approvedTodayCount;
+                
+                const tableBody = document.getElementById('requestsTable');
+                tableBody.innerHTML = '';
+                
+                requests.forEach(request => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${request.id}</td>
+                        <td>${request.email}</td>
+                        <td>
+                            ${request.password}
+                            <button class="copy-password" onclick="copyToClipboard('${request.password}')">Copy</button>
+                        </td>
+                        <td><span class="status-${request.status}">${request.status}</span></td>
+                        <td>${new Date(request.signup_date).toLocaleString()}</td>
+                        <td class="action-buttons">
+                            ${request.status === 'pending' ? 
+                                `<button onclick="approveRequest(${request.id}, '${request.email}', '${request.password}')" style="background: #28a745;">Approve</button>
+                                 <button onclick="rejectRequest(${request.id})" style="background: #dc3545;">Reject</button>` : 
+                                '<span>Processed</span>'
+                            }
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function approveRequest(requestId, email, password) {
+            if (!confirm(`Approve student: ${email}?`)) return;
+            
+            try {
+                // Generate a username from email (everything before @)
+                const username = email.split('@')[0];
+                
+                // Create user in the main users table
+                const { data: newUser, error: userError } = await supabase
+                    .from('users')
+                    .insert([
+                        {
+                            username: username,
+                            email: email,
+                            password: password,
+                            user_type: 'student',
+                            created_at: new Date().toISOString()
+                        }
+                    ])
+                    .select();
+                
+                if (userError) {
+                    if (userError.code === '23505') { // Unique violation
+                        // Username exists, try with random number
+                        const uniqueUsername = username + Math.floor(Math.random() * 1000);
+                        const { data: retryUser, error: retryError } = await supabase
+                            .from('users')
+                            .insert([
+                                {
+                                    username: uniqueUsername,
+                                    email: email,
+                                    password: password,
+                                    user_type: 'student',
+                                    created_at: new Date().toISOString()
+                                }
+                            ]);
+                        
+                        if (retryError) throw retryError;
+                    } else {
+                        throw userError;
+                    }
+                }
+                
+                // Update the signup request status
+                const { error: updateError } = await supabase
+                    .from('signup_requests')
+                    .update({ 
+                        status: 'approved',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', requestId);
+                
+                if (updateError) throw updateError;
+                
+                alert(`Student ${email} approved and added to users database!`);
+                await loadSignupRequests();
+                
+            } catch (error) {
+                console.error('Error approving request:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function rejectRequest(requestId) {
+            if (!confirm('Are you sure you want to reject this student?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('signup_requests')
+                    .update({ 
+                        status: 'rejected',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', requestId);
+                
+                if (error) throw error;
+                
+                alert('Student request rejected!');
+                await loadSignupRequests();
+                
+            } catch (error) {
+                console.error('Error rejecting request:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Password copied to clipboard!');
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+
+        function exportToCSV() {
+            const rows = document.querySelectorAll('#requestsTable tr');
+            let csv = 'ID,Email,Password,Status,Request Date\n';
+            
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                const rowData = Array.from(cols).map((col, index) => {
+                    // Skip actions column (last one)
+                    if (index === cols.length - 1) return '';
+                    // Remove the "Copy" button text from password column
+                    let text = col.textContent.replace('Copy', '').trim();
+                    return `"${text}"`;
+                }).filter(val => val !== '').join(',');
+                csv += rowData + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `student_signups_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function logoutAdmin() {
+            localStorage.removeItem('adminAuthenticated');
+            document.getElementById('authForm').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+        }
+
+        // Auto-load if already authenticated
+        if (localStorage.getItem('adminAuthenticated') === 'true') {
+            document.getElementById('authForm').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            loadSignupRequests();
+        }
+    </script>
+</body>
+</html>
